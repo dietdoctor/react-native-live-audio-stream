@@ -1,0 +1,70 @@
+{
+  "name": "react-native-voice-stream",
+  "version": "0.0.1",
+  "description": "A real-time voice streaming as base-64 string chunks",
+  "summary": "A real-time voice streaming as base-64 string chunks",
+  "source": "src/index.ts",
+  "main": "lib/commonjs/index.js",
+  "module": "lib/module/index.js",
+  "types": "lib/typescript/index.d.ts",
+  "files": [
+    "src",
+    "lib",
+    "ios",
+    "react-native-voice-stream.podspec",
+    "!android",
+    "!cpp",
+    "!lib/typescript/example",
+    "!**/__tests__",
+    "!**/__fixtures__",
+    "!**/__mocks__"
+  ],
+  "scripts": {
+    "typecheck": "tsc",
+    "clean": "del-cli lib",
+    "prepare": "bob build",
+    "release": "release-it",
+    "dev:install-rn": "yarn add --dev react-native@0.72.9",
+    "dev:clean": "yarn remove react-native"
+  },
+  "keywords": [
+    "react-native",
+    "voice",
+    "stream",
+    "base-64",
+    "native-module",
+    "ios"
+  ],
+  "repository": "https://github.com/dietdoctor/react-native-voice-stream",
+  "author": "Omal Perera <omalperera8@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dietdoctor/react-native-voice-stream/issues"
+  },
+  "homepage": "https://github.com/dietdoctor/react-native-voice-stream#readme",
+  "authors": [
+    "Omal Perera <omalperera8@gmail.com>"
+  ],
+  "devDependencies": {
+    "@react-native-community/bob": "^0.17.1",
+    "@types/react": "^19.1.6",
+    "del-cli": "^6.0.0",
+    "react": "18.2.0",
+    "release-it": "^15.6.0",
+    "typescript": "^4.9.5"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": ">=0.68.0"
+  },
+  "@react-native-community/bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      "commonjs",
+      "module",
+      "typescript"
+    ],
+    "exclude": "**/{__tests__,__fixtures__,__mocks__}/**"
+  }
+}
