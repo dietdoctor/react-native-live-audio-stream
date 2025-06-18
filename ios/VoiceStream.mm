@@ -1,11 +1,12 @@
-#import "RNLiveAudioStream.h"
+#import "VoiceStream.h"
+#import <React/RCTLog.h>
 
-@implementation RNLiveAudioStream
+@implementation VoiceStream
 
 RCT_EXPORT_MODULE();
 
 RCT_EXPORT_METHOD(init:(NSDictionary *) options) {
-    RCTLogInfo(@"[RNLiveAudioStream] init");
+    RCTLogInfo(@"[VoiceStream] init");
     _recordState.mDataFormat.mSampleRate        = options[@"sampleRate"] == nil ? 44100 : [options[@"sampleRate"] doubleValue];
     _recordState.mDataFormat.mBitsPerChannel    = options[@"bitsPerSample"] == nil ? 16 : [options[@"bitsPerSample"] unsignedIntValue];
     _recordState.mDataFormat.mChannelsPerFrame  = options[@"channels"] == nil ? 1 : [options[@"channels"] unsignedIntValue];
@@ -20,7 +21,7 @@ RCT_EXPORT_METHOD(init:(NSDictionary *) options) {
 }
 
 RCT_EXPORT_METHOD(start) {
-    RCTLogInfo(@"[RNLiveAudioStream] start");
+    RCTLogInfo(@"[VoiceStream] start");
     AVAudioSession *audioSession = [AVAudioSession sharedInstance];
     NSError *error = nil;
     BOOL success;
@@ -39,7 +40,7 @@ RCT_EXPORT_METHOD(start) {
         success = [audioSession setMode: AVAudioSessionModeVoiceChat error: &error] && success;
     }
     if (!success || error != nil) {
-        RCTLog(@"[RNLiveAudioStream] Problem setting up AVAudioSession category and mode. Error: %@", error);
+        RCTLog(@"[VoiceStream] Problem setting up AVAudioSession category and mode. Error: %@", error);
         return;
     }
 
@@ -47,7 +48,7 @@ RCT_EXPORT_METHOD(start) {
 
     OSStatus status = AudioQueueNewInput(&_recordState.mDataFormat, HandleInputBuffer, &_recordState, NULL, NULL, 0, &_recordState.mQueue);
     if (status != 0) {
-        RCTLog(@"[RNLiveAudioStream] Record Failed. Cannot initialize AudioQueueNewInput. status: %i", (int) status);
+        RCTLog(@"[VoiceStream] Record Failed. Cannot initialize AudioQueueNewInput. status: %i", (int) status);
         return;
     }
 
@@ -59,7 +60,7 @@ RCT_EXPORT_METHOD(start) {
 }
 
 RCT_EXPORT_METHOD(stop) {
-    RCTLogInfo(@"[RNLiveAudioStream] stop");
+    RCTLogInfo(@"[VoiceStream] stop");
     if (_recordState.mIsRunning) {
         _recordState.mIsRunning = false;
         AudioQueueStop(_recordState.mQueue, true);
@@ -86,6 +87,7 @@ void HandleInputBuffer(void *inUserData,
     long nsamples = inBuffer->mAudioDataByteSize;
     NSData *data = [NSData dataWithBytes:samples length:nsamples];
     NSString *str = [data base64EncodedStringWithOptions:0];
+    RCTLogInfo(@"[VoiceStream] data: %@", str);
     [pRecordState->mSelf sendEventWithName:@"data" body:str];
 
     AudioQueueEnqueueBuffer(pRecordState->mQueue, inBuffer, 0, NULL);
@@ -96,7 +98,7 @@ void HandleInputBuffer(void *inUserData,
 }
 
 - (void)dealloc {
-    RCTLogInfo(@"[RNLiveAudioStream] dealloc");
+    RCTLogInfo(@"[VoiceStream] dealloc");
     AudioQueueDispose(_recordState.mQueue, true);
 }
 

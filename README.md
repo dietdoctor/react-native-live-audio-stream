@@ -1,78 +1,49 @@
+# react-native-voice-stream
+A React Native library for real-time audio recording and streaming as base64-encoded chunks to JavaScript in real-time. Perfect for voice messaging, live transcription, or audio-based real-time applications.
 
-# react-native-live-audio-stream
-[![npm](https://img.shields.io/npm/v/react-native-live-audio-stream)](https://www.npmjs.com/package/react-native-live-audio-stream)
+## Installation
 
-Get live audio stream data for React Native. Ideal for live voice recognition (transcribing).
-
-This module is modified from [react-native-audio-record](https://github.com/goodatlas/react-native-audio-record). Instead of saving to an audio file, it only emit events with live data. By doing this, it can reduce memory usage and eliminate file operation overheads in the case that an audio file is not necessary (e.g. live transcribing).
-
-Most of the code was written by the respective original authors.
-
-## Install
+```sh
+npm install react-native-voice-stream
 ```
-yarn add react-native-live-audio-stream
-cd ios
-pod install
-```
-
-## Add Microphone Permissions
 
 ### iOS
-Add these lines to ```ios/[YOU_APP_NAME]/info.plist```
-```xml
-<key>NSMicrophoneUsageDescription</key>
-<string>We need your permission to use the microphone.</string>
-```
 
-### Android
-Add the following line to ```android/app/src/main/AndroidManifest.xml```
-```xml
-<uses-permission android:name="android.permission.RECORD_AUDIO" />
-```
+Run `pod install` in your iOS directory.
+
+## Compatibility
+
+- **React Native**: `>=0.68.0`
+- **Platform**: iOS only (Android support coming soon)
+- **Architecture**: Supports both Old and New Architecture (TurboModules)
 
 ## Usage
-```javascript
-import LiveAudioStream from 'react-native-live-audio-stream';
 
-const options = {
-  sampleRate: 32000,  // default is 44100 but 32000 is adequate for accurate voice recognition
-  channels: 1,        // 1 or 2, default 1
-  bitsPerSample: 16,  // 8 or 16, default 16
-  audioSource: 6,     // android only (see below)
-  bufferSize: 4096    // default is 2048
-};
+```js
+import VoiceStream, { VoiceStreamEmitter } from 'react-native-voice-stream';
 
-LiveAudioStream.init(options);
-LiveAudioStream.on('data', data => {
-  // base64-encoded audio data chunks
+// Initialize with options
+VoiceStream.init({ 
+  sampleRate: 44100, 
+  channels: 1,
+  bufferSize: 2048 
 });
-  ...
-LiveAudioStream.start();
-  ...
-LiveAudioStream.stop();
-  ...
+
+// Listen for real-time base64 audio data
+const subscription = VoiceStreamEmitter?.addListener('data', (base64Audio) => {
+  console.log('Received audio chunk:', base64Audio);
+});
+
+// Start recording
+VoiceStream.start();
+
+// Stop recording
+VoiceStream.stop();
+
+// Clean up
+subscription?.remove();
 ```
 
-`audioSource` should be one of the constant values from [here](https://developer.android.com/reference/android/media/MediaRecorder.AudioSource). Default value is `6` (`VOICE_RECOGNITION`).
+## License
 
-Use 3rd-party modules like [buffer](https://www.npmjs.com/package/buffer) to decode base64 data. Example:
-```javascript
-// yarn add buffer
-import { Buffer } from 'buffer';
-  ...
-LiveAudioStream.on('data', data => {
-  var chunk = Buffer.from(data, 'base64');
-});
-```
-
-## Credits/References
-- [react-native-audio-record](https://github.com/goodatlas/react-native-audio-record)
-- iOS [Audio Queues](https://developer.apple.com/library/content/documentation/MusicAudio/Conceptual/AudioQueueProgrammingGuide)
-- Android [AudioRecord](https://developer.android.com/reference/android/media/AudioRecord.html)
-- [cordova-plugin-audioinput](https://github.com/edimuj/cordova-plugin-audioinput)
-- [react-native-recording](https://github.com/qiuxiang/react-native-recording)
-- [SpeakHere](https://github.com/shaojiankui/SpeakHere)
-- [ringdroid](https://github.com/google/ringdroid)
-
-## License 
 MIT
