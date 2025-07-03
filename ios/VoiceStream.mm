@@ -84,8 +84,20 @@ void HandleInputBuffer(void *inUserData,
     }
 
     short *samples = (short *) inBuffer->mAudioData;
-    long nsamples = inBuffer->mAudioDataByteSize;
-    NSData *data = [NSData dataWithBytes:samples length:nsamples];
+    int sampleCount = inBuffer->mAudioDataByteSize / sizeof(short);
+
+    // 🔊 Simple peak-based volume (0–100)
+    int peak = 0;
+    for (int i = 0; i < sampleCount; i++) {
+        int absSample = abs(samples[i]);
+        if (absSample > peak) {
+            peak = absSample;
+        }
+    }
+    int volumeLevel = (int)((peak / 32767.0) * 100);
+    [pRecordState->mSelf sendEventWithName:@"volume" body:@(volumeLevel)];
+
+    NSData *data = [NSData dataWithBytes:samples length:inBuffer->mAudioDataByteSize];
     NSString *str = [data base64EncodedStringWithOptions:0];
     RCTLogInfo(@"[VoiceStream] data: %@", str);
     [pRecordState->mSelf sendEventWithName:@"data" body:str];
@@ -95,6 +107,10 @@ void HandleInputBuffer(void *inUserData,
 
 - (NSArray<NSString *> *)supportedEvents {
     return @[@"data"];
+}
+
+- (NSArray<NSString *> *)supportedEvents {
+    return @[@"data", @"volume"];
 }
 
 - (void)dealloc {
