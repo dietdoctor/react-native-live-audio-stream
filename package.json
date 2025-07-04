@@ -1,6 +1,7 @@
 {
-  "name": "react-native-voice-stream",
+  "name": "@dietdoctor/react-native-voice-stream",
   "version": "0.0.1",
+  "type": "module",
   "description": "A real-time voice streaming as base-64 string chunks",
   "summary": "A real-time voice streaming as base-64 string chunks",
   "source": "src/index.ts",
@@ -47,6 +48,11 @@
   ],
   "devDependencies": {
     "@react-native-community/bob": "^0.17.1",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^11.0.3",
+    "@semantic-release/npm": "^12.0.2",
     "@types/react": "^19.1.6",
     "del-cli": "^6.0.0",
     "react": "18.2.0",
@@ -66,5 +72,27 @@
       "typescript"
     ],
     "exclude": "**/{__tests__,__fixtures__,__mocks__}/**"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "tag": "latest"
+  },
+  "release": {
+    "branches": [
+      "develop"
+    ],
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      [
+        "@semantic-release/changelog",
+        {
+          "changelogFile": "CHANGELOG.md"
+        }
+      ],
+      "@semantic-release/npm",
+      "@semantic-release/git",
+      "@semantic-release/github"
+    ]
   }
 }
