@@ -64,3 +64,6 @@ buck-out/
 **/.settings
 **/.factorypath
 .vscode
+
+example/ios/Pods
+example/vendor/
