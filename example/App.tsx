@@ -1,27 +1,61 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, { useState } from 'react';
+import { Button, SafeAreaView, StatusBar, StyleSheet, Text, View, NativeModules } from 'react-native';
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+
+const voiceStreamConfig = {
+  sampleRate: 24000,
+  bufferSize: 2400,
+}
+
+const { VoiceStream } = NativeModules;
+
 
 function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+  const [isInitialized, setIsInitialized] = useState(false);
+
+const initVoiceStream = async () => {
+  try {
+    await VoiceStream.init(voiceStreamConfig);
+    setIsInitialized(true);
+  } catch (error) {
+    console.error(error);
+  }
+}
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <NewAppScreen templateFileName="App.tsx" />
+      <SafeAreaView/>
+      <StatusBar barStyle={ 'dark-content'} />
+      <Text style={styles.text}>RN Voice stream</Text>
+      {isInitialized ? <Text>Initialized successfully 🟢</Text> : <></>}
+      <View style={styles.buttonContainer}>
+        <Button title="Initialize" color="white" onPress={initVoiceStream} />
+      </View>
+      <View style={styles.bottomSpace}>
+        <></>
+      </View>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  text: {
+    fontSize: 24,
+  },
+  buttonContainer: {
+    marginTop: 20,
+    backgroundColor: 'black',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+  },
+  bottomSpace: {
+    height: 10,
   },
 });
 
