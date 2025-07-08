@@ -17,38 +17,45 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
-import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class VoiceStreamModule extends ReactContextBaseJavaModule {
     private static final String TAG = "VoiceStreamModule";
     private static final String MODULE_NAME = "VoiceStream";
+    private static final String DATA_EVENT = "data";
     
-    private ReactApplicationContext reactContext;
+    private final AtomicBoolean isRecording = new AtomicBoolean(false);
+    private final AtomicBoolean isInitialized = new AtomicBoolean(false);
+    private final ReentrantLock recordingLock = new ReentrantLock();
+    
+    private final ReactApplicationContext reactContext;
+    private final Handler mainHandler;
+    
     private AudioRecord audioRecord;
     private ExecutorService recordingExecutor;
-    private Handler mainHandler;
-    private boolean isRecording = false;
+    private Future<?> recordingTask;
     
-    // Audio configuration
     private int sampleRate = 44100;
-    private int bufferSize = 2048;
     private int channels = 1;
-    private int encoding = AudioFormat.ENCODING_PCM_16BIT;
-    
-    // Audio recording variables
+    private int bitsPerSample = 16;
     private int audioSource = MediaRecorder.AudioSource.MIC;
-    private int channelConfig = AudioFormat.CHANNEL_IN_MONO;
+    private int bufferSize = 2048;
+    
+    private int channelConfig;
+    private int audioFormat;
     private int minBufferSize;
 
     public VoiceStreamModule(ReactApplicationContext reactContext) {
         super(reactContext);
         this.reactContext = reactContext;
         this.mainHandler = new Handler(Looper.getMainLooper());
-        this.recordingExecutor = Executors.newSingleThreadExecutor();
     }
 
     @Override
@@ -58,102 +65,169 @@ public class VoiceStreamModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void init(ReadableMap options, Promise promise) {
+        recordingLock.lock();
         try {
-            Log.d(TAG, "Initializing VoiceStream");
+            if (isRecording.get()) {
+                promise.reject("INIT_ERROR", "Cannot initialize while recording is active");
+                return;
+            }
+
+            Log.d(TAG, "Initializing VoiceStream with options: " + options.toString());
             
-            // Parse options
-            if (options.hasKey("sampleRate")) {
-                this.sampleRate = options.getInt("sampleRate");
-            }
-            if (options.hasKey("bufferSize")) {
-                this.bufferSize = options.getInt("bufferSize");
-            }
-            if (options.hasKey("channels")) {
-                this.channels = options.getInt("channels");
-                this.channelConfig = channels == 1 ? AudioFormat.CHANNEL_IN_MONO : AudioFormat.CHANNEL_IN_STEREO;
+            if (!parseOptions(options)) {
+                promise.reject("INIT_ERROR", "Invalid audio configuration options");
+                return;
             }
             
-            // Calculate minimum buffer size
-            this.minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, encoding);
+            channelConfig = (channels == 1) ? AudioFormat.CHANNEL_IN_MONO : AudioFormat.CHANNEL_IN_STEREO;
+            audioFormat = (bitsPerSample == 16) ? AudioFormat.ENCODING_PCM_16BIT : AudioFormat.ENCODING_PCM_8BIT;
             
-            // Ensure buffer size is at least the minimum required
-            if (this.bufferSize < this.minBufferSize) {
-                this.bufferSize = this.minBufferSize;
+            minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat);
+            if (minBufferSize == AudioRecord.ERROR_BAD_VALUE || minBufferSize == AudioRecord.ERROR) {
+                promise.reject("INIT_ERROR", "Invalid audio configuration for this device");
+                return;
             }
             
-            Log.d(TAG, String.format("Audio config - SampleRate: %d, BufferSize: %d, Channels: %d, MinBufferSize: %d", 
-                    sampleRate, bufferSize, channels, minBufferSize));
+            if (bufferSize < minBufferSize) {
+                bufferSize = minBufferSize;
+                Log.w(TAG, "Buffer size increased to minimum required: " + bufferSize);
+            }
+            
+            if (recordingExecutor != null && !recordingExecutor.isShutdown()) {
+                recordingExecutor.shutdown();
+            }
+            recordingExecutor = Executors.newSingleThreadExecutor(r -> {
+                Thread thread = new Thread(r, "VoiceStream-Recording");
+                thread.setPriority(Thread.MAX_PRIORITY);
+                return thread;
+            });
+            
+            isInitialized.set(true);
+            
+            Log.d(TAG, String.format("VoiceStream initialized - SampleRate: %d, Channels: %d, " +
+                    "BitsPerSample: %d, AudioSource: %d, BufferSize: %d, MinBufferSize: %d", 
+                    sampleRate, channels, bitsPerSample, audioSource, bufferSize, minBufferSize));
             
             promise.resolve(null);
+            
         } catch (Exception e) {
             Log.e(TAG, "Error initializing VoiceStream", e);
-            promise.reject("INIT_ERROR", "Failed to initialize VoiceStream: " + e.getMessage());
+            promise.reject("INIT_ERROR", "Failed to initialize: " + e.getMessage());
+        } finally {
+            recordingLock.unlock();
         }
     }
 
     @ReactMethod
     public void start(Promise promise) {
+        recordingLock.lock();
         try {
-            Log.d(TAG, "Starting voice stream");
-            
-            // Check permissions
-            if (!hasAudioPermission()) {
-                promise.reject("PERMISSION_ERROR", "Audio recording permission not granted");
+            if (!isInitialized.get()) {
+                promise.reject("START_ERROR", "VoiceStream not initialized. Call init() first.");
                 return;
             }
             
-            if (isRecording) {
+            if (isRecording.get()) {
                 Log.w(TAG, "Already recording");
                 promise.resolve(null);
                 return;
             }
             
-            // Initialize AudioRecord
-            audioRecord = new AudioRecord(
-                    audioSource,
-                    sampleRate,
-                    channelConfig,
-                    encoding,
-                    bufferSize
-            );
-            
-            if (audioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
-                promise.reject("AUDIO_RECORD_ERROR", "Failed to initialize AudioRecord");
+            if (!hasAudioPermission()) {
+                promise.reject("PERMISSION_ERROR", "Audio recording permission not granted");
                 return;
             }
             
-            isRecording = true;
-            audioRecord.startRecording();
+            Log.d(TAG, "Starting voice stream");
             
-            // Start recording in background thread
-            recordingExecutor.execute(this::recordAudio);
+            try {
+                audioRecord = new AudioRecord(
+                        audioSource,
+                        sampleRate,
+                        channelConfig,
+                        audioFormat,
+                        Math.max(bufferSize, minBufferSize * 2)
+                );
+                
+                if (audioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
+                    audioRecord.release();
+                    audioRecord = null;
+                    promise.reject("AUDIO_RECORD_ERROR", "Failed to initialize AudioRecord");
+                    return;
+                }
+                
+            } catch (Exception e) {
+                if (audioRecord != null) {
+                    audioRecord.release();
+                    audioRecord = null;
+                }
+                promise.reject("AUDIO_RECORD_ERROR", "Failed to create AudioRecord: " + e.getMessage());
+                return;
+            }
             
-            Log.d(TAG, "Voice stream started successfully");
-            promise.resolve(null);
+            try {
+                audioRecord.startRecording();
+                isRecording.set(true);
+                
+                recordingTask = recordingExecutor.submit(this::recordAudioLoop);
+                
+                Log.d(TAG, "Voice stream started successfully");
+                promise.resolve(null);
+                
+            } catch (Exception e) {
+                isRecording.set(false);
+                if (audioRecord != null) {
+                    try {
+                        audioRecord.stop();
+                        audioRecord.release();
+                    } catch (Exception ignored) {}
+                    audioRecord = null;
+                }
+                promise.reject("START_ERROR", "Failed to start recording: " + e.getMessage());
+            }
             
-        } catch (Exception e) {
-            Log.e(TAG, "Error starting voice stream", e);
-            promise.reject("START_ERROR", "Failed to start voice stream: " + e.getMessage());
+        } finally {
+            recordingLock.unlock();
         }
     }
 
     @ReactMethod
     public void stop(Promise promise) {
+        recordingLock.lock();
         try {
-            Log.d(TAG, "Stopping voice stream");
-            
-            if (!isRecording) {
+            if (!isRecording.get()) {
                 Log.w(TAG, "Not currently recording");
                 promise.resolve(null);
                 return;
             }
             
-            isRecording = false;
+            Log.d(TAG, "Stopping voice stream");
+            
+            isRecording.set(false);
             
             if (audioRecord != null) {
-                audioRecord.stop();
-                audioRecord.release();
+                try {
+                    audioRecord.stop();
+                } catch (Exception e) {
+                    Log.w(TAG, "Error stopping AudioRecord: " + e.getMessage());
+                }
+                
+                try {
+                    audioRecord.release();
+                } catch (Exception e) {
+                    Log.w(TAG, "Error releasing AudioRecord: " + e.getMessage());
+                }
                 audioRecord = null;
+            }
+            
+            if (recordingTask != null && !recordingTask.isDone()) {
+                try {
+                    recordingTask.get(500, TimeUnit.MILLISECONDS);
+                } catch (Exception e) {
+                    Log.w(TAG, "Recording task didn't finish gracefully: " + e.getMessage());
+                    recordingTask.cancel(true);
+                }
+                recordingTask = null;
             }
             
             Log.d(TAG, "Voice stream stopped successfully");
@@ -162,53 +236,125 @@ public class VoiceStreamModule extends ReactContextBaseJavaModule {
         } catch (Exception e) {
             Log.e(TAG, "Error stopping voice stream", e);
             promise.reject("STOP_ERROR", "Failed to stop voice stream: " + e.getMessage());
+        } finally {
+            recordingLock.unlock();
         }
     }
 
-    private void recordAudio() {
-        Log.d(TAG, "Starting audio recording thread");
+    private void recordAudioLoop() {
+        Log.d(TAG, "Starting audio recording loop");
         
-        // Calculate buffer size for reading (using smaller chunks for more frequent updates)
-        int readBufferSize = Math.min(bufferSize, 4096);
+        int readBufferSize = Math.min(bufferSize / 4, 4096);
         byte[] audioBuffer = new byte[readBufferSize];
         
-        while (isRecording && audioRecord != null) {
+        while (isRecording.get() && audioRecord != null) {
             try {
                 int bytesRead = audioRecord.read(audioBuffer, 0, readBufferSize);
                 
+                if (!isRecording.get()) {
+                    break;
+                }
+                
                 if (bytesRead > 0) {
-                    // Convert to base64
                     byte[] audioData = new byte[bytesRead];
                     System.arraycopy(audioBuffer, 0, audioData, 0, bytesRead);
-                    String base64Data = Base64.encodeToString(audioData, Base64.NO_WRAP);
                     
-                    // Send data to JavaScript on main thread
-                    mainHandler.post(() -> sendAudioData(base64Data));
+                    if (isRecording.get()) {
+                        String base64Data = Base64.encodeToString(audioData, Base64.NO_WRAP);
+                        sendAudioDataSafely(base64Data);
+                    }
+                    
                 } else if (bytesRead == AudioRecord.ERROR_INVALID_OPERATION) {
                     Log.e(TAG, "Invalid operation error in audio recording");
                     break;
                 } else if (bytesRead == AudioRecord.ERROR_BAD_VALUE) {
                     Log.e(TAG, "Bad value error in audio recording");
                     break;
+                } else if (bytesRead == AudioRecord.ERROR) {
+                    Log.e(TAG, "Generic error in audio recording");
+                    break;
                 }
                 
             } catch (Exception e) {
-                Log.e(TAG, "Error in audio recording loop", e);
+                if (isRecording.get()) {
+                    Log.e(TAG, "Error in audio recording loop", e);
+                }
                 break;
             }
         }
         
-        Log.d(TAG, "Audio recording thread stopped");
+        Log.d(TAG, "Audio recording loop finished");
     }
 
-    private void sendAudioData(String base64Data) {
-        try {
-            reactContext
-                    .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                    .emit("data", base64Data);
-        } catch (Exception e) {
-            Log.e(TAG, "Error sending audio data to JavaScript", e);
+    private void sendAudioDataSafely(String base64Data) {
+        if (!isRecording.get()) {
+            return;
         }
+        
+        mainHandler.post(() -> {
+            if (!isRecording.get()) {
+                return;
+            }
+            
+            try {
+                reactContext
+                        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                        .emit(DATA_EVENT, base64Data);
+            } catch (Exception e) {
+                Log.e(TAG, "Error sending audio data to JavaScript", e);
+            }
+        });
+    }
+
+    private boolean parseOptions(ReadableMap options) {
+        try {
+            if (options.hasKey("sampleRate")) {
+                int rate = options.getInt("sampleRate");
+                if (rate < 8000 || rate > 48000) return false;
+                this.sampleRate = rate;
+            }
+            
+            if (options.hasKey("channels")) {
+                int ch = options.getInt("channels");
+                if (ch != 1 && ch != 2) return false;
+                this.channels = ch;
+            }
+            
+            if (options.hasKey("bitsPerSample")) {
+                int bits = options.getInt("bitsPerSample");
+                if (bits != 8 && bits != 16) return false;
+                this.bitsPerSample = bits;
+            }
+            
+            if (options.hasKey("audioSource")) {
+                int source = options.getInt("audioSource");
+                if (isValidAudioSource(source)) {
+                    this.audioSource = source;
+                }
+            }
+            
+            if (options.hasKey("bufferSize")) {
+                int size = options.getInt("bufferSize");
+                if (size >= 1024) {
+                    this.bufferSize = size;
+                }
+            }
+            
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "Error parsing options", e);
+            return false;
+        }
+    }
+
+    private boolean isValidAudioSource(int source) {
+        return source == MediaRecorder.AudioSource.DEFAULT ||
+               source == MediaRecorder.AudioSource.MIC ||
+               source == MediaRecorder.AudioSource.VOICE_RECOGNITION ||
+               source == MediaRecorder.AudioSource.VOICE_COMMUNICATION ||
+               source == MediaRecorder.AudioSource.CAMCORDER ||
+               source == MediaRecorder.AudioSource.VOICE_DOWNLINK ||
+               source == MediaRecorder.AudioSource.VOICE_UPLINK;
     }
 
     private boolean hasAudioPermission() {
@@ -218,16 +364,37 @@ public class VoiceStreamModule extends ReactContextBaseJavaModule {
 
     @Override
     public void invalidate() {
-        if (isRecording) {
-            isRecording = false;
+        Log.d(TAG, "Module invalidating");
+        
+        recordingLock.lock();
+        try {
+            isRecording.set(false);
+            isInitialized.set(false);
+            
             if (audioRecord != null) {
-                audioRecord.stop();
-                audioRecord.release();
+                try {
+                    audioRecord.stop();
+                    audioRecord.release();
+                } catch (Exception e) {
+                    Log.w(TAG, "Error cleaning up AudioRecord: " + e.getMessage());
+                }
                 audioRecord = null;
             }
-        }
-        if (recordingExecutor != null && !recordingExecutor.isShutdown()) {
-            recordingExecutor.shutdown();
+            
+            if (recordingExecutor != null && !recordingExecutor.isShutdown()) {
+                recordingExecutor.shutdown();
+                try {
+                    if (!recordingExecutor.awaitTermination(1, TimeUnit.SECONDS)) {
+                        recordingExecutor.shutdownNow();
+                    }
+                } catch (InterruptedException e) {
+                    recordingExecutor.shutdownNow();
+                    Thread.currentThread().interrupt();
+                }
+            }
+            
+        } finally {
+            recordingLock.unlock();
         }
     }
 
@@ -236,7 +403,7 @@ public class VoiceStreamModule extends ReactContextBaseJavaModule {
         // Required for NativeEventEmitter
     }
 
-    @ReactMethod  
+    @ReactMethod
     public void removeListeners(Integer count) {
         // Required for NativeEventEmitter
     }
