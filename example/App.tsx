@@ -1,8 +1,9 @@
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   Button,
   EventSubscription,
   SafeAreaView,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -11,30 +12,27 @@ import {
 import VoiceStreamer from 'react-native-voice-stream';
 
 const VoiceStreamerConfig = {
-  sampleRate: 24000,
-  bufferSize: 2400,
+  sampleRate: 12000,
+  bufferSize: 6400,
 };
-
-//const { VoiceStreamer } = NativeModules;
 
 function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const audioListener = useRef<EventSubscription | null>(null);
-  const [audioChunks, setAudioChunks] = useState<string[]>([]);
+  const [audioChunks, setAudioChunks] = useState<string>('');
 
   const initVoiceStreamer = async () => {
     try {
       await VoiceStreamer.init(VoiceStreamerConfig);
       setIsInitialized(true);
 
-      // audioListener.current = VoiceStreamer.listen(
-      //   'data',
-      //   (base64Payload: string) => {
-      //     console.log(base64Payload);
-      //     //setAudioChunks([...audioChunks, base64Payload.slice(0, 10)]);
-      //   }
-      // );
+      audioListener.current = VoiceStreamer.listen(
+        'data',
+        (base64Payload: string) => {
+          setAudioChunks(audioChunks + '\n' +base64Payload );
+        }
+      );
     } catch (error) {
       console.error(error);
     }
@@ -42,23 +40,31 @@ function App() {
 
   const startRecording = async () => {
     try {
-      //if (audioListener.current) {
+      if (audioListener.current) {
         await VoiceStreamer.start();
         setIsRecording(true);
-      //}
+      }
     } catch (error) {
       console.error(error);
     }
   }
 
+  const stopRecording = useCallback(async () => {
+      console.log('stopRecording');
+      await VoiceStreamer.stop()
+      audioListener.current?.remove()
+      setIsRecording(false);
+      setIsInitialized(false);
+  }, [])
+
   return (
     <View style={styles.container}>
       <SafeAreaView />
       <StatusBar barStyle="dark-content" />
-      <Text style={styles.text}>RN Voice stream</Text>
-      <View>
+      <Text style={styles.title}>RN Voice stream</Text>
+      <View style={styles.statusContainer}>
       {isInitialized ? (
-        <Text>🟢 Initialized successfully</Text>
+        <Text style={styles.statusText}>🟢 Initialized successfully</Text>
       ) : (
         <View style={styles.buttonContainer}>
           <Button
@@ -71,7 +77,16 @@ function App() {
       )}
       {isInitialized ?
       (isRecording ? (
-        <Text>🟢 Recording...</Text>
+        <View>
+        <Text style={styles.statusText}>🟢 Recording...</Text>
+        <View style={styles.buttonContainer}>
+          <Button
+            title="Stop recording"
+            color="white"
+            onPress={stopRecording}
+          />
+        </View>
+        </View>
       ) : (
         <View style={styles.buttonContainer}>
           <Button
@@ -80,15 +95,13 @@ function App() {
             onPress={startRecording}
           />
         </View>
-      )): null}
+      )): null        
+      }
       </View>
-      <View>
+      <ScrollView contentContainerStyle={styles.scrollView}>
         <Text>Audio chunks: {audioChunks.length}</Text>
-        {audioChunks.map((chunk, index) => (
-          <Text key={index}>{chunk}</Text>
-        ))}
-      </View>
-      <View style={styles.bottomSpace} />
+        <Text>{audioChunks}</Text>
+      </ScrollView>
     </View>
   );
 }
@@ -96,11 +109,13 @@ function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    flexDirection: 'column',
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: 'white',
   },
-  text: {
+  title: {
+    marginVertical: 20,
     fontSize: 24,
   },
   buttonContainer: {
@@ -110,8 +125,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 10,
   },
-  bottomSpace: {
-    height: 10,
+  statusContainer: {
+    flex: 1,
+  },
+  statusText: {
+    marginVertical: 4,
+  },
+  scrollView: {
+    height: '50%',
+    width: 300,
   },
 });
 
