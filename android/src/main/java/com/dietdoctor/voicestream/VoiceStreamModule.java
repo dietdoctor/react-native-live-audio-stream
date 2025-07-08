@@ -217,8 +217,7 @@ public class VoiceStreamModule extends ReactContextBaseJavaModule {
     }
 
     @Override
-    public void onCatalystInstanceDestroy() {
-        super.onCatalystInstanceDestroy();
+    public void invalidate() {
         if (isRecording) {
             isRecording = false;
             if (audioRecord != null) {

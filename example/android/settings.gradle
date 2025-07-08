@@ -3,4 +3,8 @@ plugins { id("com.facebook.react.settings") }
 extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
 rootProject.name = 'VoiceStreamExample'
 include ':app'
+
+include ':react-native-voice-stream'
+project(':react-native-voice-stream').projectDir = new File(rootProject.projectDir, '../../android')
+
 includeBuild('../node_modules/@react-native/gradle-plugin')
