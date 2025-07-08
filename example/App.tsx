@@ -24,7 +24,6 @@ function App() {
   const audioListener = useRef<EventSubscription | null>(null);
   const [audioChunks, setAudioChunks] = useState<string>('');
 
-
    const requestAudioPermission = async () => {
     if (Platform.OS === 'android') {
       const granted = await PermissionsAndroid.request(

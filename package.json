@@ -6,13 +6,15 @@
   "source": "src/index.ts",
   "main": "lib/commonjs/index.js",
   "module": "lib/module/index.js",
-  "types": "lib/typescript/index.d.ts",
+  "types": "lib/typescript/src/index.d.ts",
+  "react-native": "src/index.ts",
   "files": [
     "src",
     "lib",
     "ios",
+    "android",
     "react-native-voice-stream.podspec",
-    "!android",
+    "react-native.config.js",
     "!cpp",
     "!lib/typescript/example",
     "!**/__tests__",
@@ -33,7 +35,8 @@
     "stream",
     "base-64",
     "native-module",
-    "ios"
+    "ios",
+    "android"
   ],
   "repository": "https://github.com/dietdoctor/react-native-voice-stream",
   "author": "Omal Perera <omalperera8@gmail.com>",
