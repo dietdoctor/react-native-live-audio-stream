@@ -2,6 +2,8 @@ import React, { useCallback, useRef, useState } from 'react';
 import {
   Button,
   EventSubscription,
+  PermissionsAndroid,
+  Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -22,6 +24,17 @@ function App() {
   const audioListener = useRef<EventSubscription | null>(null);
   const [audioChunks, setAudioChunks] = useState<string>('');
 
+
+   const requestAudioPermission = async () => {
+    if (Platform.OS === 'android') {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+      )
+      return granted === PermissionsAndroid.RESULTS.GRANTED
+    }
+    return true
+  }
+
   const initVoiceStreamer = async () => {
     try {
       await VoiceStreamer.init(VoiceStreamerConfig);
@@ -41,6 +54,11 @@ function App() {
   const startRecording = async () => {
     try {
       if (audioListener.current) {
+        const granted = await requestAudioPermission();
+        if (!granted) {
+          console.log('Audio permission not granted');
+          return;
+        }
         await VoiceStreamer.start();
         setIsRecording(true);
       }
@@ -66,35 +84,29 @@ function App() {
       {isInitialized ? (
         <Text style={styles.statusText}>🟢 Initialized successfully</Text>
       ) : (
-        <View style={styles.buttonContainer}>
           <Button
             title="Initialize"
-            color="white"
+            color="black"
             disabled={isInitialized}
             onPress={initVoiceStreamer}
           />
-        </View>
       )}
       {isInitialized ?
       (isRecording ? (
         <View>
         <Text style={styles.statusText}>🟢 Recording...</Text>
-        <View style={styles.buttonContainer}>
           <Button
             title="Stop recording"
-            color="white"
+            color="black"
             onPress={stopRecording}
           />
         </View>
-        </View>
       ) : (
-        <View style={styles.buttonContainer}>
           <Button
             title="Start recording"
-            color="white"
+            color="black"
             onPress={startRecording}
           />
-        </View>
       )): null        
       }
       </View>

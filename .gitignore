@@ -67,3 +67,4 @@ buck-out/
 
 example/ios/Pods
 example/vendor/
+example/android/app/.cxx/
