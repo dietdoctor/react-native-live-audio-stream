@@ -7,38 +7,61 @@ A React Native library for real-time audio recording and streaming as base64-enc
 npm install react-native-voice-stream
 ```
 
-### iOS
+### Auto-linking (React Native ≥ 0.60)
 
-Run `pod install` in your iOS directory.
+No manual linking required! The module will be automatically linked.
+
+**For iOS**: Run `cd ios && pod install`  
+**For Android**: No additional steps needed
+
+### Manual linking (React Native < 0.60)
+
+Please refer to the [React Native documentation](https://reactnative.dev/docs/linking-libraries-ios) for manual linking instructions.
 
 ## Compatibility
 
 - **React Native**: `>=0.68.0`
-- **Platform**: iOS only (Android support coming soon)
+- **Platforms**: iOS and Android
 - **Architecture**: Supports both Old and New Architecture (TurboModules)
+- **Auto-linking**: ✅ Fully supported (React Native ≥ 0.60)
 
 ## Usage
 
 ```js
-import VoiceStream, { VoiceStreamEmitter } from 'react-native-voice-stream';
+import VoiceStreamer from 'react-native-voice-stream';
+import { PermissionsAndroid, Platform } from 'react-native';
+
+// Request microphone permission (Android)
+const requestAudioPermission = async () => {
+  if (Platform.OS === 'android') {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.RECORD_AUDIO
+    );
+    return granted === PermissionsAndroid.RESULTS.GRANTED;
+  }
+  return true; // iOS handles permissions automatically
+};
 
 // Initialize with options
-VoiceStream.init({ 
+await VoiceStreamer.init({ 
   sampleRate: 44100, 
   channels: 1,
   bufferSize: 2048 
 });
 
 // Listen for real-time base64 audio data
-const subscription = VoiceStreamEmitter?.addListener('data', (base64Audio) => {
+const subscription = VoiceStreamer.listen('data', (base64Audio) => {
   console.log('Received audio chunk:', base64Audio);
 });
 
-// Start recording
-VoiceStream.start();
+// Request permission and start recording
+const hasPermission = await requestAudioPermission();
+if (hasPermission) {
+  await VoiceStreamer.start();
+}
 
 // Stop recording
-VoiceStream.stop();
+await VoiceStreamer.stop();
 
 // Clean up
 subscription?.remove();
