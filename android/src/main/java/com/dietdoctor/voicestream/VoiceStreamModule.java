@@ -230,4 +230,14 @@ public class VoiceStreamModule extends ReactContextBaseJavaModule {
             recordingExecutor.shutdown();
         }
     }
+
+    @ReactMethod
+    public void addListener(String eventName) {
+        // Required for NativeEventEmitter
+    }
+
+    @ReactMethod  
+    public void removeListeners(Integer count) {
+        // Required for NativeEventEmitter
+    }
 } 
