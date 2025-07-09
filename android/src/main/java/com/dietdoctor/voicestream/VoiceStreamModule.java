@@ -245,43 +245,26 @@ public class VoiceStreamModule extends ReactContextBaseJavaModule {
 
     private void recordAudioLoop() {
         Log.d(TAG, "Starting audio recording loop");
-        
-        int readBufferSize = Math.min(bufferSize / 4, 4096);
-        byte[] audioBuffer = new byte[readBufferSize];
-        
+
+        final int targetBytes = bufferSize;
+        byte[] audioBuffer = new byte[targetBytes];
+
         while (isRecording.get() && audioRecord != null) {
-            try {
-                int bytesRead = audioRecord.read(audioBuffer, 0, readBufferSize);
-                
-                if (!isRecording.get()) {
-                    break;
-                }
-                
+            int offset = 0;
+
+            while (offset < targetBytes && isRecording.get()) {
+                int bytesRead = audioRecord.read(audioBuffer, offset, targetBytes - offset);
                 if (bytesRead > 0) {
-                    byte[] audioData = new byte[bytesRead];
-                    System.arraycopy(audioBuffer, 0, audioData, 0, bytesRead);
-                    
-                    if (isRecording.get()) {
-                        String base64Data = Base64.encodeToString(audioData, Base64.NO_WRAP);
-                        sendAudioDataSafely(base64Data);
-                    }
-                    
-                } else if (bytesRead == AudioRecord.ERROR_INVALID_OPERATION) {
-                    Log.e(TAG, "Invalid operation error in audio recording");
-                    break;
-                } else if (bytesRead == AudioRecord.ERROR_BAD_VALUE) {
-                    Log.e(TAG, "Bad value error in audio recording");
-                    break;
-                } else if (bytesRead == AudioRecord.ERROR) {
-                    Log.e(TAG, "Generic error in audio recording");
+                    offset += bytesRead;
+                } else {
+                    Log.w(TAG, "Audio read error: " + bytesRead);
                     break;
                 }
-                
-            } catch (Exception e) {
-                if (isRecording.get()) {
-                    Log.e(TAG, "Error in audio recording loop", e);
-                }
-                break;
+            }
+
+            if (offset == targetBytes && isRecording.get()) {
+                String base64Data = Base64.encodeToString(audioBuffer, Base64.NO_WRAP);
+                sendAudioDataSafely(base64Data);
             }
         }
         
