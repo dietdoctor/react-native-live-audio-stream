@@ -14,7 +14,6 @@
     "ios",
     "android",
     "react-native-voice-stream.podspec",
-    "react-native.config.js",
     "!cpp",
     "!lib/typescript/example",
     "!**/__tests__",

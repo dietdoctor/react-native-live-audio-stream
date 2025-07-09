@@ -31,6 +31,8 @@ public class VoiceStreamModule extends ReactContextBaseJavaModule {
     private static final String MODULE_NAME = "VoiceStream";
     private static final String DATA_EVENT = "data";
     
+    public static final String NAME = "VoiceStream";
+    
     private final AtomicBoolean isRecording = new AtomicBoolean(false);
     private final AtomicBoolean isInitialized = new AtomicBoolean(false);
     private final ReentrantLock recordingLock = new ReentrantLock();
@@ -60,7 +62,7 @@ public class VoiceStreamModule extends ReactContextBaseJavaModule {
 
     @Override
     public String getName() {
-        return MODULE_NAME;
+        return NAME;
     }
 
     @ReactMethod
