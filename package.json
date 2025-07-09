@@ -66,7 +66,12 @@
     "targets": [
       "commonjs",
       "module",
-      "typescript"
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
     ],
     "exclude": "**/{__tests__,__fixtures__,__mocks__}/**"
   }
