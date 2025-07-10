@@ -1,5 +1,6 @@
 #import "VoiceStream.h"
 #import <React/RCTLog.h>
+#import <AVFoundation/AVFoundation.h>
 
 @implementation VoiceStream
 
@@ -69,6 +70,20 @@ RCT_EXPORT_METHOD(stop) {
         }
         AudioQueueDispose(_recordState.mQueue, true);
     }
+}
+
+RCT_EXPORT_METHOD(checkMicrophonePermission:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject) {
+    AVAudioSessionRecordPermission permission = [[AVAudioSession sharedInstance] recordPermission];
+    BOOL granted = (permission == AVAudioSessionRecordPermissionGranted);
+    resolve(@(granted));
+}
+
+RCT_EXPORT_METHOD(requestMicrophonePermission:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject) {
+    [[AVAudioSession sharedInstance] requestRecordPermission:^(BOOL granted) {
+        resolve(@(granted));
+    }];
 }
 
 void HandleInputBuffer(void *inUserData,
