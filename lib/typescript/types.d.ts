@@ -9,10 +9,14 @@ export interface VoiceStreamNativeModule {
     init(options: VoiceStreamOptions): Promise<void>;
     start(): Promise<void>;
     stop(): Promise<void>;
+    checkMicrophonePermission(): Promise<boolean>;
+    requestMicrophonePermission(): Promise<boolean>;
 }
 export interface VoiceStreamerInterface {
     init(options: VoiceStreamOptions): Promise<void>;
     start(): Promise<void>;
     stop(): Promise<void>;
     listen(event: 'data', callback: (data: string) => void): EmitterSubscription;
+    checkMicrophonePermission(): Promise<boolean>;
+    requestMicrophonePermission(): Promise<boolean>;
 }
