@@ -12,6 +12,8 @@ export interface VoiceStreamNativeModule {
     init(options: VoiceStreamOptions): Promise<void>;
     start(): Promise<void>;
     stop(): Promise<void>;
+    checkMicrophonePermission(): Promise<boolean>; //only for iOS
+    requestMicrophonePermission(): Promise<boolean>; //only for iOS
 }
   
 export interface VoiceStreamerInterface {
@@ -19,5 +21,7 @@ export interface VoiceStreamerInterface {
     start(): Promise<void>;
     stop(): Promise<void>;
     listen(event: 'data', callback: (data: string) => void): EmitterSubscription;
+    checkMicrophonePermission(): Promise<boolean>;
+    requestMicrophonePermission(): Promise<boolean>;
 }
   
