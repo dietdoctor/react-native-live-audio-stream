@@ -1,6 +1,6 @@
 {
   "name": "react-native-voice-stream",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A real-time voice streaming as base-64 string chunks",
   "summary": "A real-time voice streaming as base-64 string chunks",
   "main": "lib/commonjs/index",
@@ -23,7 +23,7 @@
   ],
   "scripts": {
     "typecheck": "tsc",
-    "clean": "del-cli lib",
+    "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build",
     "prepare": "bob build",
     "release": "release-it",
     "dev:install-rn": "yarn add --dev react-native@0.72.9",
@@ -59,19 +59,52 @@
     "eslint-plugin-prettier": "^5.5.1",
     "prettier": "^3.6.2",
     "react": "18.2.0",
+    "react-native": "0.72.1",
     "release-it": "^15.6.0",
     "typescript": "^4.9.5"
+
   },
   "peerDependencies": {
     "react": "*",
-    "react-native": ">=0.68.0"
+    "react-native": "*"
   },
+  "packageManager": "yarn@1.22.22",
   "jest": {
     "preset": "react-native",
     "modulePathIgnorePatterns": [
       "<rootDir>/example/node_modules",
       "<rootDir>/lib/"
     ]
+  },
+  "eslintConfig": {
+    "root": true,
+    "extends": [
+      "@react-native-community",
+      "prettier"
+    ],
+    "rules": {
+      "prettier/prettier": [
+        "error",
+        {
+          "quoteProps": "consistent",
+          "singleQuote": true,
+          "tabWidth": 2,
+          "trailingComma": "es5",
+          "useTabs": false
+        }
+      ]
+    }
+  },
+  "eslintIgnore": [
+    "node_modules/",
+    "lib/"
+  ],
+  "prettier": {
+    "quoteProps": "consistent",
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "useTabs": false
   },
   "@react-native-community/bob": {
     "source": "src",

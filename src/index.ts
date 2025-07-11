@@ -1,43 +1,73 @@
-// @ts-ignore
-import { NativeModules, NativeEventEmitter, EmitterSubscription, Platform, PermissionsAndroid } from 'react-native';
-import { VoiceStreamerInterface, VoiceStreamNativeModule, VoiceStreamOptions } from './types';
+import {
+  NativeModules,
+  NativeEventEmitter,
+  EmitterSubscription,
+  Platform,
+  PermissionsAndroid,
+  Permission,
+} from "react-native";
+import {
+  VoiceStreamerInterface,
+  VoiceStreamNativeModule,
+  VoiceStreamOptions,
+} from "./types";
 
-const { VoiceStream: NativeVoiceStream } = NativeModules as {
-  VoiceStream: VoiceStreamNativeModule;
+const { NativeVoiceStream } = NativeModules as {
+  NativeVoiceStream: VoiceStreamNativeModule;
 };
 
 const EventEmitter = new NativeEventEmitter(NativeVoiceStream);
-const eventKey: 'data' = 'data';
+const eventKey: "data" = "data";
 
 const VoiceStream: VoiceStreamerInterface = {
+  /**
+   * Configures the audio recording parameters and prepares the voice streaming session
+   * @param options Configuration for sample rate, buffer size, and other audio settings
+   */
   init: (options: VoiceStreamOptions): Promise<void> => {
     return NativeVoiceStream.init(options);
   },
 
+  /**
+   * Begins capturing audio input and streaming base64-encoded chunks
+   */
   start: (): Promise<void> => {
     return NativeVoiceStream.start();
   },
 
+  /**
+   * Terminates the active recording session and releases audio resources
+   */
   stop: (): Promise<void> => {
     return NativeVoiceStream.stop();
   },
-  
-  listen: (event: 'data', callback: (data: string) => void): EmitterSubscription => {
+
+  /**
+   * Registers a callback to receive real-time base64 audio data chunks
+   * @param event Must be 'data'
+   * @param callback Function called with each audio chunk
+   * @returns Subscription that can be removed
+   */
+  listen: (event: "data", callback: (data: string) => void): EmitterSubscription => {
     if (event !== eventKey) {
-      throw new Error('Invalid event');
+      throw new Error("Invalid event");
     }
     EventEmitter.removeAllListeners(eventKey);
     return EventEmitter.addListener(eventKey, callback);
   },
 };
 
+/**
+ * Verifies whether microphone access is currently granted for this app
+ * @returns True if permission is granted, false otherwise
+ */
 export const checkMicrophonePermission = async (): Promise<boolean> => {
-  if (Platform.OS === 'ios') {
+  if (Platform.OS === "ios") {
     return NativeVoiceStream.checkMicrophonePermission();
-  } else if (Platform.OS === 'android') {
+  } else if (Platform.OS === "android") {
     try {
       const granted = await PermissionsAndroid.check(
-        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO
+        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO as Permission
       );
       return granted;
     } catch (error) {
@@ -47,13 +77,17 @@ export const checkMicrophonePermission = async (): Promise<boolean> => {
   return false;
 };
 
+/**
+ * Prompts the user to grant microphone access if not already authorized (Android only)
+ * @returns True if permission granted or already exists, false if denied
+ */
 export const requestMicrophonePermission = async (): Promise<boolean> => {
-  if (Platform.OS === 'ios') {
+  if (Platform.OS === "ios") {
     return NativeVoiceStream.requestMicrophonePermission();
-  } else if (Platform.OS === 'android') {
+  } else if (Platform.OS === "android") {
     try {
       const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO
+        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO as Permission
       );
       return granted === PermissionsAndroid.RESULTS.GRANTED;
     } catch (error) {
@@ -61,6 +95,6 @@ export const requestMicrophonePermission = async (): Promise<boolean> => {
     }
   }
   return false;
-}
+};
 
 export default VoiceStream;

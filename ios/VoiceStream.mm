@@ -4,11 +4,11 @@
 
 @implementation VoiceStream
 
-RCT_EXPORT_MODULE();
+RCT_EXPORT_MODULE(NativeVoiceStream);
 
 RCT_EXPORT_METHOD(init:(NSDictionary *) options) {
     RCTLogInfo(@"[VoiceStream] init");
-    _recordState.mDataFormat.mSampleRate        = options[@"sampleRate"] == nil ? 44100 : [options[@"sampleRate"] doubleValue];
+    _recordState.mDataFormat.mSampleRate        = options[@"sampleRate"] == nil ? 48000 : [options[@"sampleRate"] doubleValue];
     _recordState.mDataFormat.mBitsPerChannel    = options[@"bitsPerSample"] == nil ? 16 : [options[@"bitsPerSample"] unsignedIntValue];
     _recordState.mDataFormat.mChannelsPerFrame  = options[@"channels"] == nil ? 1 : [options[@"channels"] unsignedIntValue];
     _recordState.mDataFormat.mBytesPerPacket    = (_recordState.mDataFormat.mBitsPerChannel / 8) * _recordState.mDataFormat.mChannelsPerFrame;
@@ -17,7 +17,7 @@ RCT_EXPORT_METHOD(init:(NSDictionary *) options) {
     _recordState.mDataFormat.mReserved          = 0;
     _recordState.mDataFormat.mFormatID          = kAudioFormatLinearPCM;
     _recordState.mDataFormat.mFormatFlags       = _recordState.mDataFormat.mBitsPerChannel == 8 ? kLinearPCMFormatFlagIsPacked : (kLinearPCMFormatFlagIsSignedInteger | kLinearPCMFormatFlagIsPacked);
-    _recordState.bufferByteSize                 = options[@"bufferSize"] == nil ? 2048 : [options[@"bufferSize"] unsignedIntValue];
+    _recordState.bufferByteSize                 = options[@"bufferSize"] == nil ? 2400 : [options[@"bufferSize"] unsignedIntValue];
     _recordState.mSelf = self;
 }
 

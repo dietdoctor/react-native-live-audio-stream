@@ -28,10 +28,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class VoiceStreamModule extends ReactContextBaseJavaModule {
     private static final String TAG = "VoiceStreamModule";
-    private static final String MODULE_NAME = "VoiceStream";
     private static final String DATA_EVENT = "data";
-    
-    public static final String NAME = "VoiceStream";
+    public static final String NAME = "NativeVoiceStream";
     
     private final AtomicBoolean isRecording = new AtomicBoolean(false);
     private final AtomicBoolean isInitialized = new AtomicBoolean(false);
