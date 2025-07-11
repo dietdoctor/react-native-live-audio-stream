@@ -17,6 +17,4 @@ export interface VoiceStreamerInterface {
     start(): Promise<void>;
     stop(): Promise<void>;
     listen(event: 'data', callback: (data: string) => void): EmitterSubscription;
-    checkMicrophonePermission(): Promise<boolean>;
-    requestMicrophonePermission(): Promise<boolean>;
 }
