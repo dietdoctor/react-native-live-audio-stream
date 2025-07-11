@@ -1,17 +1,28 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
-    "module": "commonjs",
-    "jsx": "react-native",
-    "isolatedModules": true,
+    "baseUrl": "./",
+    "paths": {
+      "react-native-voice-stream": ["./src/index"]
+    },
+   "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
     "esModuleInterop": true,
-    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "jsx": "react",
+    "lib": ["esnext"],
+    "module": "esnext",
+    "moduleResolution": "node",
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
     "noImplicitUseStrict": false,
     "noStrictGenericChecks": false,
     "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "resolveJsonModule": true,
-  }
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "esnext"
+  },
+  "exclude": ["docs"]
 } 
