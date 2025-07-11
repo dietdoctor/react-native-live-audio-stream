@@ -2,24 +2,24 @@
 import { NativeModules, NativeEventEmitter, EmitterSubscription, Platform, PermissionsAndroid } from 'react-native';
 import { VoiceStreamerInterface, VoiceStreamNativeModule, VoiceStreamOptions } from './types';
 
-const { VoiceStream } = NativeModules as {
+const { VoiceStream: NativeVoiceStream } = NativeModules as {
   VoiceStream: VoiceStreamNativeModule;
 };
 
-const EventEmitter = new NativeEventEmitter(VoiceStream);
+const EventEmitter = new NativeEventEmitter(NativeVoiceStream);
 const eventKey: 'data' = 'data';
 
-const VoiceStreamer: VoiceStreamerInterface = {
+const VoiceStream: VoiceStreamerInterface = {
   init: (options: VoiceStreamOptions): Promise<void> => {
-    return VoiceStream.init(options);
+    return NativeVoiceStream.init(options);
   },
 
   start: (): Promise<void> => {
-    return VoiceStream.start();
+    return NativeVoiceStream.start();
   },
 
   stop: (): Promise<void> => {
-    return VoiceStream.stop();
+    return NativeVoiceStream.stop();
   },
   
   listen: (event: 'data', callback: (data: string) => void): EmitterSubscription => {
@@ -29,38 +29,38 @@ const VoiceStreamer: VoiceStreamerInterface = {
     EventEmitter.removeAllListeners(eventKey);
     return EventEmitter.addListener(eventKey, callback);
   },
-
-  checkMicrophonePermission: async (): Promise<boolean> => {
-    if (Platform.OS === 'ios') {
-      return VoiceStream.checkMicrophonePermission();
-    } else if (Platform.OS === 'android') {
-      try {
-        const granted = await PermissionsAndroid.check(
-          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO
-        );
-        return granted;
-      } catch (error) {
-        return false;
-      }
-    }
-    return false;
-  },
-
-  requestMicrophonePermission: async (): Promise<boolean> => {
-    if (Platform.OS === 'ios') {
-      return VoiceStream.requestMicrophonePermission();
-    } else if (Platform.OS === 'android') {
-      try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO
-        );
-        return granted === PermissionsAndroid.RESULTS.GRANTED;
-      } catch (error) {
-        return false;
-      }
-    }
-    return false;
-  }
 };
 
-export default VoiceStreamer;
+export const checkMicrophonePermission = async (): Promise<boolean> => {
+  if (Platform.OS === 'ios') {
+    return NativeVoiceStream.checkMicrophonePermission();
+  } else if (Platform.OS === 'android') {
+    try {
+      const granted = await PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO
+      );
+      return granted;
+    } catch (error) {
+      return false;
+    }
+  }
+  return false;
+};
+
+export const requestMicrophonePermission = async (): Promise<boolean> => {
+  if (Platform.OS === 'ios') {
+    return NativeVoiceStream.requestMicrophonePermission();
+  } else if (Platform.OS === 'android') {
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (error) {
+      return false;
+    }
+  }
+  return false;
+}
+
+export default VoiceStream;
