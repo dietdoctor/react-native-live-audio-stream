@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import VoiceStreamer from 'react-native-voice-stream';
+import VoiceStream, { checkMicrophonePermission } from 'react-native-voice-stream';
 import { Button } from './components';
 
 const VoiceStreamerConfig = {
@@ -24,10 +24,10 @@ function App() {
 
   const initVoiceStreamer = async () => {
     try {
-      await VoiceStreamer.init(VoiceStreamerConfig);
+      await VoiceStream.init(VoiceStreamerConfig);
       setIsInitialized(true);
 
-      audioListener.current = VoiceStreamer.listen(
+      audioListener.current = VoiceStream.listen(
         'data',
         (base64Payload: string) => {
           setAudioChunks(prev => `${prev}${base64Payload.slice(0, 30)} ...\n`);
@@ -42,12 +42,12 @@ function App() {
   const startRecording = async () => {
     try {
       if (audioListener.current) {
-        const granted = await VoiceStreamer.checkMicrophonePermission();
+        const granted = await checkMicrophonePermission();
         if (!granted) {
           console.log('Audio permission not granted');
           return;
         }
-        await VoiceStreamer.start();
+        await VoiceStream.start();
         setIsRecording(true);
       }
     } catch (error) {
@@ -57,7 +57,7 @@ function App() {
 
   const stopRecording = useCallback(async () => {
     console.log('stopRecording');
-    await VoiceStreamer.stop();
+    await VoiceStream.stop();
     audioListener.current?.remove();
     setIsRecording(false);
     setIsInitialized(false);
