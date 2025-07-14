@@ -28,7 +28,7 @@ Please refer to the [React Native documentation](https://reactnative.dev/docs/li
 ## Usage
 
 ```js
-import VoiceStreamer from 'react-native-voice-stream';
+import VoiceStream from 'react-native-voice-stream';
 import { PermissionsAndroid, Platform } from 'react-native';
 
 // Request microphone permission (Android)
@@ -43,25 +43,25 @@ const requestAudioPermission = async () => {
 };
 
 // Initialize with options
-await VoiceStreamer.init({ 
+await VoiceStream.init({ 
   sampleRate: 44100, 
   channels: 1,
   bufferSize: 2048 
 });
 
 // Listen for real-time base64 audio data
-const subscription = VoiceStreamer.listen('data', (base64Audio) => {
+const subscription = VoiceStream.listen('data', (base64Audio) => {
   console.log('Received audio chunk:', base64Audio);
 });
 
 // Request permission and start recording
 const hasPermission = await requestAudioPermission();
 if (hasPermission) {
-  await VoiceStreamer.start();
+  await VoiceStream.start();
 }
 
 // Stop recording
-await VoiceStreamer.stop();
+await VoiceStream.stop();
 
 // Clean up
 subscription?.remove();

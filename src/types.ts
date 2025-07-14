@@ -1,5 +1,4 @@
-// @ts-ignore
-import {EmitterSubscription } from 'react-native';
+import {EmitterSubscription, NativeModule } from 'react-native';
 
 export interface VoiceStreamOptions {
     sampleRate?: number;
@@ -8,7 +7,7 @@ export interface VoiceStreamOptions {
     encoding?: string;
 }
   
-export interface VoiceStreamNativeModule {
+export interface VoiceStreamNativeModule extends NativeModule {
     init(options: VoiceStreamOptions): Promise<void>;
     start(): Promise<void>;
     stop(): Promise<void>;
@@ -21,7 +20,4 @@ export interface VoiceStreamerInterface {
     start(): Promise<void>;
     stop(): Promise<void>;
     listen(event: 'data', callback: (data: string) => void): EmitterSubscription;
-    checkMicrophonePermission(): Promise<boolean>;
-    requestMicrophonePermission(): Promise<boolean>;
 }
-  
